@@ -379,16 +379,47 @@
         const camBtn = document.getElementById('cam-btn');
         let isCameraRunning = false;
 
+        //random
+        // window.setMode = (mode) => {
+        //     if (mode === 'FOCUS_RANDOM') {
+        //         STATE.mode = 'FOCUS';
+        //         const photos = particleSystem.filter(p => p.type === 'PHOTO');
+        //         if (photos.length) STATE.focusTarget = photos[Math.floor(Math.random()*photos.length)].mesh;
+        //     } else {
+        //         STATE.mode = mode;
+        //         if (mode === 'TREE') STATE.focusTarget = null;
+        //     }
+        // };
+
+        //loop
+
+        let currentPhotoIndex = 0;
+
         window.setMode = (mode) => {
             if (mode === 'FOCUS_RANDOM') {
                 STATE.mode = 'FOCUS';
                 const photos = particleSystem.filter(p => p.type === 'PHOTO');
-                if (photos.length) STATE.focusTarget = photos[Math.floor(Math.random()*photos.length)].mesh;
+                
+                if (photos.length) {
+                    // Lấy ảnh theo thứ tự
+                    STATE.focusTarget = photos[currentPhotoIndex].mesh;
+                    
+                    // Tăng index lên 1
+                    currentPhotoIndex++;
+                    
+                    // Nếu đã hết ảnh thì quay lại đầu
+                    if (currentPhotoIndex >= photos.length) {
+                        currentPhotoIndex = 0;
+                    }
+                }
             } else {
                 STATE.mode = mode;
                 if (mode === 'TREE') STATE.focusTarget = null;
             }
+            console.log("Current Photo Index:", currentPhotoIndex);
         };
+
+
 
         async function init() {
             initThree();
@@ -480,7 +511,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.toneMapping = THREE.ReinhardToneMapping; 
-            renderer.toneMappingExposure = 2.2; 
+            renderer.toneMappingExposure = 1.1; 
             container.appendChild(renderer.domElement);
             mainGroup = new THREE.Group();
             scene.add(mainGroup);
@@ -510,8 +541,10 @@
 
         function setupPostProcessing() {
             const renderScene = new RenderPass(scene, camera);
-            const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-            bloomPass.threshold = 0.65; bloomPass.strength = 0.5; bloomPass.radius = 0.4;
+            const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), .5, 0.4, 0.25);
+            // const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+            // bloomPass.threshold = 0.65; bloomPass.strength = 0.5; bloomPass.radius = 0.4;
+            bloomPass.threshold = 0.65; bloomPass.strength = 0.1; bloomPass.radius = 0.2;
             composer = new EffectComposer(renderer);
             composer.addPass(renderScene);
             composer.addPass(bloomPass);
@@ -706,7 +739,8 @@
 
         function addPhotoToScene(texture) {
             const frameGeo = new THREE.BoxGeometry(1.4, 1.4, 0.05);
-            const frameMat = new THREE.MeshStandardMaterial({ color: CONFIG.colors.champagneGold, metalness: 1.0, roughness: 0.1 });
+            // const frameMat = new THREE.MeshStandardMaterial({ color: CONFIG.colors.champagneGold, metalness: 1.0, roughness: 0.1 });
+            const frameMat = new THREE.MeshStandardMaterial({ color: CONFIG.colors.champagneGold, metalness: .9, roughness: 0.1 });
             const frame = new THREE.Mesh(frameGeo, frameMat);
             let width = 1.2; let height = 1.2;
             if (texture.image) {
@@ -817,10 +851,22 @@
                 debugInfo.innerText = `Gesture Detected: ${STATE.mode}`;
                 if (extensionRatio < 1.5) { STATE.mode = 'TREE'; STATE.focusTarget = null; }
                 else if (pinchRatio < 0.35) {
+                    // if (STATE.mode !== 'FOCUS') {
+                    //     STATE.mode = 'FOCUS';
+                    //     const photos = particleSystem.filter(p => p.type === 'PHOTO');
+                    //     if (photos.length) STATE.focusTarget = photos[Math.floor(Math.random()*photos.length)].mesh;
+                    // }
                     if (STATE.mode !== 'FOCUS') {
                         STATE.mode = 'FOCUS';
                         const photos = particleSystem.filter(p => p.type === 'PHOTO');
-                        if (photos.length) STATE.focusTarget = photos[Math.floor(Math.random()*photos.length)].mesh;
+                        if (photos.length) {
+                            STATE.focusTarget = photos[currentPhotoIndex].mesh;
+                            currentPhotoIndex++;
+                            if (currentPhotoIndex >= photos.length) {
+                                currentPhotoIndex = 0;
+                            }
+                        }
+                        console.log("Current Photo Index (Pinch):", currentPhotoIndex);
                     }
                 } else if (extensionRatio > 1.7) { STATE.mode = 'SCATTER'; STATE.focusTarget = null; }
             } else {
